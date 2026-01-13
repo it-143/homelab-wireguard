@@ -1,0 +1,37 @@
+#!/bin/bash
+# 50-macvlan-shim
+# 
+# This script creates a macvlan shim interface to allow the Docker host
+# to communicate with containers on a macvlan network.
+#
+# Installation:
+#   1. Edit the variables below to match your setup
+#   2. Copy to /etc/networkd-dispatcher/routable.d/50-macvlan-shim
+#   3. Make executable: sudo chmod +x /etc/networkd-dispatcher/routable.d/50-macvlan-shim
+#
+# The script runs automatically when the network interface becomes routable.
+
+# ==== CONFIGURATION - EDIT THESE ====
+
+# Your physical network interface (find with: ip link show)
+INTERFACE="eth0"
+
+# IP address for the shim interface (use an unused IP on your network)
+SHIM_IP="192.168.1.211"
+
+# IP address of your wg-easy container
+CONTAINER_IP="192.168.1.210"
+
+# ==== END CONFIGURATION ====
+
+# Create macvlan shim interface
+ip link add macvlan-shim link "$INTERFACE" type macvlan mode bridge
+
+# Assign IP to shim interface
+ip addr add "${SHIM_IP}/32" dev macvlan-shim
+
+# Bring up the interface
+ip link set macvlan-shim up
+
+# Add route to container through shim
+ip route add "${CONTAINER_IP}/32" dev macvlan-shim
